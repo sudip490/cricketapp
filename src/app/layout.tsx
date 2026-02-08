@@ -17,9 +17,17 @@ export default function RootLayout({
       <body>
         {children}
         <Script
+          id="ad-script-209375"
           src="https://quge5.com/88/tag.min.js"
           strategy="afterInteractive"
           data-zone="209375"
+          data-cfasync="false"
+        />
+        <Script
+          id="ad-script-209376"
+          src="https://quge5.com/88/tag.min.js"
+          strategy="afterInteractive"
+          data-zone="209376"
           data-cfasync="false"
         />
       </body>
