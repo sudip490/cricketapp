@@ -21,6 +21,15 @@ export function HLSPlayer({ src, title, autoPlay = false, headers, className }: 
     const [isMuted, setIsMuted] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [currentSrc, setCurrentSrc] = useState(src);
+    const [retryCount, setRetryCount] = useState(0);
+
+    // Reset currentSrc when src prop changes
+    useEffect(() => {
+        setCurrentSrc(src);
+        setRetryCount(0);
+        setError(null);
+    }, [src]);
 
     useEffect(() => {
         const video = videoRef.current;
@@ -32,7 +41,8 @@ export function HLSPlayer({ src, title, autoPlay = false, headers, className }: 
         }
 
         setIsLoading(true);
-        setError(null);
+        // Don't reset error here if we are retrying
+        if (retryCount === 0) setError(null);
 
         if (Hls.isSupported()) {
             const hls = new Hls({
@@ -40,7 +50,6 @@ export function HLSPlayer({ src, title, autoPlay = false, headers, className }: 
                 lowLatencyMode: true,
                 backBufferLength: 90,
                 xhrSetup: headers ? (xhr) => {
-                    // Add custom headers for TSports API
                     Object.entries(headers).forEach(([key, value]) => {
                         xhr.setRequestHeader(key, value);
                     });
@@ -48,11 +57,12 @@ export function HLSPlayer({ src, title, autoPlay = false, headers, className }: 
             });
 
             hlsRef.current = hls;
-            hls.loadSource(src);
+            hls.loadSource(currentSrc);
             hls.attachMedia(video);
 
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
                 setIsLoading(false);
+                setError(null); // Success!
                 if (autoPlay) {
                     video.play().catch((err) => {
                         console.error("Auto-play failed:", err);
@@ -64,33 +74,42 @@ export function HLSPlayer({ src, title, autoPlay = false, headers, className }: 
             hls.on(Hls.Events.ERROR, (event, data) => {
                 console.error("HLS Error:", data);
                 if (data.fatal) {
-                    setError("Failed to load stream. The stream may be offline.");
-                    setIsLoading(false);
-                    switch (data.type) {
-                        case Hls.ErrorTypes.NETWORK_ERROR:
-                            console.error("Network error");
-                            hls.startLoad();
-                            break;
-                        case Hls.ErrorTypes.MEDIA_ERROR:
-                            console.error("Media error");
-                            hls.recoverMediaError();
-                            break;
-                        default:
-                            hls.destroy();
-                            break;
+                    // If network error and haven't retried with proxy yet
+                    if (data.type === Hls.ErrorTypes.NETWORK_ERROR && retryCount === 0) {
+                        console.log("Network error, attempting CORS proxy...");
+                        setRetryCount(1);
+                        // Try with corsproxy.io
+                        setCurrentSrc(`https://corsproxy.io/?${encodeURIComponent(src)}`);
+                        return; // return early, useEffect will re-run with new src
                     }
+
+                    setIsLoading(false);
+                    setError("Stream unavailable. It might be geo-blocked or offline.");
+                    hls.destroy();
                 }
             });
         } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
             // For Safari
-            video.src = src;
+            video.src = currentSrc;
             video.addEventListener("loadedmetadata", () => {
                 setIsLoading(false);
+                setError(null);
                 if (autoPlay) {
                     video.play().catch((err) => {
                         console.error("Auto-play failed:", err);
                         setIsPlaying(false);
                     });
+                }
+            });
+
+            video.addEventListener("error", () => {
+                if (retryCount === 0) {
+                    console.log("Safari network error, attempting CORS proxy...");
+                    setRetryCount(1);
+                    setCurrentSrc(`https://corsproxy.io/?${encodeURIComponent(src)}`);
+                } else {
+                    setIsLoading(false);
+                    setError("Stream unavailable on Safari.");
                 }
             });
         } else {
@@ -103,7 +122,7 @@ export function HLSPlayer({ src, title, autoPlay = false, headers, className }: 
                 hlsRef.current.destroy();
             }
         };
-    }, [src, autoPlay]);
+    }, [currentSrc, autoPlay, headers, src, retryCount]);
 
     const togglePlay = () => {
         const video = videoRef.current;
