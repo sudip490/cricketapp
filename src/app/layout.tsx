@@ -30,6 +30,12 @@ export default function RootLayout({
           data-zone="209376"
           data-cfasync="false"
         />
+        <Script
+          id="ad-script-10583931"
+          src="https://3nbf4.com/act/files/tag.min.js?z=10583931"
+          strategy="afterInteractive"
+          data-cfasync="false"
+        />
       </body>
     </html>
   );
