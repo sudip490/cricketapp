@@ -36,6 +36,13 @@ export default function RootLayout({
           strategy="afterInteractive"
           data-cfasync="false"
         />
+        <Script
+          id="ad-script-10583944"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(s){s.dataset.zone='10583944',s.src='https://gizokraijaw.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`
+          }}
+        />
       </body>
     </html>
   );
