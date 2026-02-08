@@ -105,26 +105,7 @@ export default function IndianTVPage() {
 
                     {/* Sidebar / Categories (Mobile: Top Scroll, Desktop: Sidebar) */}
                     <aside className="lg:col-span-1 space-y-4">
-                        {/* Player (Mobile only - moves to top when playing) */}
-                        {selectedChannel && (
-                            <div className="lg:hidden mb-6">
-                                <Card className="overflow-hidden border-orange-500 border-2">
-                                    <div className="aspect-video bg-black">
-                                        <HLSPlayer
-                                            src={selectedChannel.url}
-                                            title={selectedChannel.name}
-                                            autoPlay={true}
-                                        />
-                                    </div>
-                                    <div className="p-3 bg-slate-100 dark:bg-slate-800">
-                                        <h3 className="font-bold truncate">{selectedChannel.name}</h3>
-                                        <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">
-                                            {selectedChannel.category || "General"}
-                                        </span>
-                                    </div>
-                                </Card>
-                            </div>
-                        )}
+
 
                         <Card className="p-4 sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
                             <h3 className="font-semibold mb-3 flex items-center gap-2">
@@ -157,7 +138,7 @@ export default function IndianTVPage() {
                     <div className="lg:col-span-3 space-y-6">
                         {/* Desktop Player */}
                         {selectedChannel && (
-                            <div className="hidden lg:block sticky top-4 z-10 mb-6">
+                            <div className="sticky top-4 z-10 mb-6">
                                 <Card className="overflow-hidden border-orange-500 border-2 shadow-xl">
                                     <div className="aspect-video bg-black">
                                         <HLSPlayer
