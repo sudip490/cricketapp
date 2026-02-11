@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'edge'; // Use Edge Runtime for lower latency (closer to user)
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60; // Allow longer execution time on Vercel
 
 export async function GET(request: NextRequest) {
     const url = request.nextUrl.searchParams.get('url');

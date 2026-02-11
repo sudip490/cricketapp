@@ -65,6 +65,10 @@ export function HLSPlayer({ src, title, autoPlay = false, headers, className }: 
                 fragLoadingTimeOut: 15000,
                 fragLoadingMaxRetry: 4,
                 startLevel: -1,
+                // Low latency/Faster start optimizations
+                startFragPrefetch: true,
+                liveSyncDurationCount: 2,
+                maxMaxBufferLength: 30,
                 xhrSetup: headers ? (xhr) => {
                     Object.entries(headers).forEach(([key, value]) => {
                         xhr.setRequestHeader(key, value);
