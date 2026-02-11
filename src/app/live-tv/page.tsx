@@ -5,11 +5,11 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { HlsPlayer } from "@/components/live-tv/hls-player";
+import { HLSPlayer } from "@/components/hls-player";
 import { ChannelList } from "@/components/live-tv/channel-list";
 import { liveTvCategories } from "@/data/live-tv-channels";
 import type { Channel } from "@/data/live-tv-channels";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, Tv2 } from "lucide-react"; // Added Tv2 icon
 
 export default function LiveTvPage() {
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
@@ -81,8 +81,13 @@ export default function LiveTvPage() {
               )}
             </CardHeader>
             <CardContent className="p-0">
-              <div className="aspect-video w-full min-h-[240px] bg-black rounded-b-lg overflow-hidden">
-                {selectedChannel?.isExternal ? (
+              <div className="aspect-video w-full min-h-[240px] bg-black rounded-b-lg overflow-hidden relative">
+                {!selectedChannel ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground bg-muted/40">
+                    <Tv2 className="h-16 w-16 mb-4 opacity-50" />
+                    <p className="font-medium">Select a channel to start watching</p>
+                  </div>
+                ) : selectedChannel.isExternal ? (
                   <div className="h-full w-full flex flex-col items-center justify-center gap-4 p-8 text-center">
                     <ExternalLink className="h-16 w-16 text-blue-500" />
                     <div>
@@ -106,9 +111,11 @@ export default function LiveTvPage() {
                     </p>
                   </div>
                 ) : (
-                  <HlsPlayer
-                    src={selectedChannel?.url ?? null}
-                    title={selectedChannel?.name}
+                  <HLSPlayer
+                    key={selectedChannel.id}
+                    src={selectedChannel.url}
+                    title={selectedChannel.name}
+                    autoPlay={true}
                     className="h-full w-full object-contain"
                   />
                 )}

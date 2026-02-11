@@ -47,7 +47,7 @@ const categories: Category[] = [
       {
         id: slugify("Sony SAB"),
         name: "Sony SAB",
-        url: "http://103.10.30.130:8081/viatv/viasonysab/chunks.m3u8",
+        url: "http://103.10.30.130:8081/viatv/viasonysabhd/chunks.m3u8",
       },
       {
         id: slugify("Sony SAB HD"),
@@ -364,7 +364,7 @@ const categories: Category[] = [
       {
         id: slugify("StarPlus HD"),
         name: "StarPlus HD",
-        url: "http://103.10.30.130:8081/viatv/viaandtv/chunks.m3u8",
+        url: "http://103.10.30.130:8081/viatv/viaStarPlusSd.stream/chunks.m3u8",
       },
       {
         id: slugify("Zee Bollywood"),

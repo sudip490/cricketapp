@@ -26,7 +26,15 @@ export function HLSPlayer({ src, title, autoPlay = false, headers, className }: 
 
     // Reset currentSrc when src prop changes
     useEffect(() => {
-        setCurrentSrc(src);
+        let newSrc = src;
+        // Check for Mixed Content (HTTP on HTTPS) and use proxy if needed
+        if (typeof window !== 'undefined' &&
+            window.location.protocol === 'https:' &&
+            src && src.startsWith('http://')) {
+            console.log("Auto-upgrading HTTP stream to Proxy");
+            newSrc = `/api/proxy?url=${encodeURIComponent(src)}`;
+        }
+        setCurrentSrc(newSrc);
         setRetryCount(0);
         setError(null);
     }, [src]);
@@ -46,9 +54,17 @@ export function HLSPlayer({ src, title, autoPlay = false, headers, className }: 
 
         if (Hls.isSupported()) {
             const hls = new Hls({
-                enableWorker: true,
+                enableWorker: false, // Disable worker to prevent worker-related remux crashes and improve stability
                 lowLatencyMode: true,
                 backBufferLength: 90,
+                // Improve stability for poor connections
+                manifestLoadingTimeOut: 20000,
+                manifestLoadingMaxRetry: 4,
+                levelLoadingTimeOut: 20000,
+                levelLoadingMaxRetry: 4,
+                fragLoadingTimeOut: 20000,
+                fragLoadingMaxRetry: 6,
+                startLevel: -1,
                 xhrSetup: headers ? (xhr) => {
                     Object.entries(headers).forEach(([key, value]) => {
                         xhr.setRequestHeader(key, value);
@@ -74,13 +90,43 @@ export function HLSPlayer({ src, title, autoPlay = false, headers, className }: 
             hls.on(Hls.Events.ERROR, (event, data) => {
                 console.error("HLS Error:", data);
                 if (data.fatal) {
-                    // If network error and haven't retried with proxy yet
-                    if (data.type === Hls.ErrorTypes.NETWORK_ERROR && retryCount === 0) {
-                        console.log("Network error, attempting CORS proxy...");
-                        setRetryCount(1);
-                        // Try with corsproxy.io
-                        setCurrentSrc(`https://corsproxy.io/?${encodeURIComponent(src)}`);
-                        return; // return early, useEffect will re-run with new src
+                    // If network error, we can try to recover or switch to proxy
+                    if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                        console.log("HLS Network Error encounterd. details:", data);
+
+                        // If we haven't tried the proxy yet, try it now
+                        if (retryCount === 0) {
+                            console.log("Attempting to recover with Proxy...");
+                            setRetryCount(1);
+                            // Destroy current instance before switching source
+                            setCurrentSrc(`/api/proxy?url=${encodeURIComponent(src)}`);
+                            return;
+                        }
+
+                        // Otherwise, let HLS.js internal retries handle it unless it's a fatal manifest load error
+                        if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR ||
+                            data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT ||
+                            data.details === Hls.ErrorDetails.LEVEL_LOAD_ERROR ||
+                            data.details === Hls.ErrorDetails.REMUX_ALLOC_ERROR) {
+                            // These are critical
+                            console.log("Critical HLS error, trying to switch to proxy or force reload");
+
+                            if (retryCount === 0) {
+                                setRetryCount(1);
+                                setCurrentSrc(`/api/proxy?url=${encodeURIComponent(src)}`);
+                                return;
+                            }
+
+                            setIsLoading(false);
+                            setError("Stream is offline or format is not supported.");
+                            hls.destroy();
+                            return;
+                        }
+
+                        // For other fatal network errors (like frag load), try startLoad() to recover
+                        console.log("Attempting to recover fatal network error...");
+                        hls.startLoad();
+                        return;
                     }
 
                     setIsLoading(false);
@@ -104,9 +150,9 @@ export function HLSPlayer({ src, title, autoPlay = false, headers, className }: 
 
             video.addEventListener("error", () => {
                 if (retryCount === 0) {
-                    console.log("Safari network error, attempting CORS proxy...");
+                    console.log("Safari network error, attempting Proxy...");
                     setRetryCount(1);
-                    setCurrentSrc(`https://corsproxy.io/?${encodeURIComponent(src)}`);
+                    setCurrentSrc(`/api/proxy?url=${encodeURIComponent(src)}`);
                 } else {
                     setIsLoading(false);
                     setError("Stream unavailable on Safari.");
@@ -120,6 +166,7 @@ export function HLSPlayer({ src, title, autoPlay = false, headers, className }: 
         return () => {
             if (hlsRef.current) {
                 hlsRef.current.destroy();
+                hlsRef.current = null;
             }
         };
     }, [currentSrc, autoPlay, headers, src, retryCount]);
@@ -168,8 +215,8 @@ export function HLSPlayer({ src, title, autoPlay = false, headers, className }: 
                 />
 
                 {/* Loading Overlay */}
-                {isLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/80">
+                {(isLoading) && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
                         <div className="text-center">
                             <Loader2 className="h-12 w-12 text-white animate-spin mx-auto mb-2" />
                             <p className="text-white text-sm">Loading stream...</p>
