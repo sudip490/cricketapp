@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // Allow longer execution time on Vercel
 
 export async function GET(request: NextRequest) {
     const url = request.nextUrl.searchParams.get('url');
@@ -10,6 +11,8 @@ export async function GET(request: NextRequest) {
 
     try {
         const response = await fetch(url, {
+            cache: 'no-store', // CRITICAL: Disable Next.js Data Cache for live streams
+            signal: request.signal, // Abort upstream if client disconnects
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                 'Referer': new URL(url).origin,
