@@ -10,14 +10,21 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const response = await fetch(url, {
-            cache: 'no-store', // CRITICAL: Disable Next.js Data Cache for live streams
+        const isPlaylist = url.endsWith('.m3u8');
+        const fetchOptions: RequestInit = {
             signal: request.signal, // Abort upstream if client disconnects
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                 'Referer': new URL(url).origin,
             },
-        });
+        };
+
+        // Only disable cache for playlists (dynamic). Segments (.ts) are static and can be cached.
+        if (isPlaylist) {
+            fetchOptions.cache = 'no-store';
+        }
+
+        const response = await fetch(url, fetchOptions);
 
         if (!response.ok) {
             // For segment files (.ts), return empty body to prevent HLS.js remux errors
@@ -28,9 +35,10 @@ export async function GET(request: NextRequest) {
         }
 
         const contentType = response.headers.get('content-type') || '';
-        const isPlaylist = contentType.includes('mpegurl') || url.endsWith('.m3u8');
+        // Reuse isPlaylist from above, or update based on content type if needed
+        const isPlaylistContentType = contentType.includes('mpegurl') || isPlaylist;
 
-        if (isPlaylist) {
+        if (isPlaylistContentType) {
             const text = await response.text();
             const baseUrl = url; // The original URL is the base for relative paths inside the m3u8
 

@@ -30,9 +30,9 @@ export function HLSPlayer({ src, title, autoPlay = false, headers, className }: 
         // Check for Mixed Content (HTTP on HTTPS) and use proxy if needed
         if (typeof window !== 'undefined' &&
             window.location.protocol === 'https:' &&
-            src && src.startsWith('http://')) {
+            src && src.trim().toLowerCase().startsWith('http://')) {
             console.log("Auto-upgrading HTTP stream to Proxy");
-            newSrc = `/api/proxy?url=${encodeURIComponent(src)}`;
+            newSrc = `/api/proxy?url=${encodeURIComponent(src.trim())}`;
         }
         setCurrentSrc(newSrc);
         setRetryCount(0);
@@ -54,16 +54,16 @@ export function HLSPlayer({ src, title, autoPlay = false, headers, className }: 
 
         if (Hls.isSupported()) {
             const hls = new Hls({
-                enableWorker: false, // Disable worker to prevent worker-related remux crashes and improve stability
+                enableWorker: true, // Re-enable worker for better performance (parsing speed)
                 lowLatencyMode: true,
                 backBufferLength: 90,
-                // Improve stability for poor connections
-                manifestLoadingTimeOut: 20000,
-                manifestLoadingMaxRetry: 4,
-                levelLoadingTimeOut: 20000,
-                levelLoadingMaxRetry: 4,
-                fragLoadingTimeOut: 20000,
-                fragLoadingMaxRetry: 6,
+                // Improve stability but fail faster if truly dead
+                manifestLoadingTimeOut: 15000,
+                manifestLoadingMaxRetry: 3,
+                levelLoadingTimeOut: 15000,
+                levelLoadingMaxRetry: 3,
+                fragLoadingTimeOut: 15000,
+                fragLoadingMaxRetry: 4,
                 startLevel: -1,
                 xhrSetup: headers ? (xhr) => {
                     Object.entries(headers).forEach(([key, value]) => {
