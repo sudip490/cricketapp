@@ -30,9 +30,9 @@ export function HLSPlayer({ src, title, autoPlay = false, headers, className }: 
         // Check for Mixed Content (HTTP on HTTPS) and use proxy if needed
         if (typeof window !== 'undefined' &&
             window.location.protocol === 'https:' &&
-            src && src.trim().toLowerCase().startsWith('http://')) {
+            src && src.startsWith('http://')) {
             console.log("Auto-upgrading HTTP stream to Proxy");
-            newSrc = `/api/proxy?url=${encodeURIComponent(src.trim())}`;
+            newSrc = `/api/proxy?url=${encodeURIComponent(src)}`;
         }
         setCurrentSrc(newSrc);
         setRetryCount(0);
@@ -66,8 +66,8 @@ export function HLSPlayer({ src, title, autoPlay = false, headers, className }: 
                 fragLoadingMaxRetry: 4,
                 startLevel: -1,
                 // Low latency/Faster start optimizations
-                startFragPrefetch: true,
-                liveSyncDurationCount: 2,
+                startFragPrefetch: false,
+                liveSyncDurationCount: 3,
                 maxMaxBufferLength: 30,
                 xhrSetup: headers ? (xhr) => {
                     Object.entries(headers).forEach(([key, value]) => {
